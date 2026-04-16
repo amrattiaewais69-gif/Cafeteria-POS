@@ -1,223 +1,206 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin POS</title>
+<title>POS Admin PRO</title>
 
-  <style>
-    body { font-family: Arial; background:#f5f5f5; margin:0; }
+<style>
+body{margin:0;font-family:Arial;background:#f4f6f9}
 
-    .hidden { display:none; }
+.login{
+  width:300px;margin:100px auto;background:#fff;padding:20px;border-radius:10px
+}
 
-    .container {
-      display:flex;
-      height:100vh;
-    }
+.dashboard{
+  display:flex;height:100vh
+}
 
-    .sidebar {
-      width:220px;
-      background:#111;
-      color:#fff;
-      padding:10px;
-    }
+.sidebar{
+  width:220px;background:#111;color:#fff;padding:10px
+}
 
-    .main {
-      flex:1;
-      padding:20px;
-    }
+.sidebar button{
+  width:100%;margin:5px 0;padding:10px;background:#222;color:#fff;border:0
+}
 
-    input, select {
-      width:100%;
-      padding:8px;
-      margin:5px 0;
-    }
+.main{
+  flex:1;padding:20px
+}
 
-    button {
-      width:100%;
-      padding:10px;
-      background:#28a745;
-      color:#fff;
-      border:none;
-      cursor:pointer;
-      margin-top:5px;
-    }
+.card{
+  background:#fff;padding:15px;margin-bottom:10px;border-radius:10px
+}
 
-    table {
-      width:100%;
-      background:#fff;
-      margin-top:10px;
-      border-collapse:collapse;
-    }
+input,select{
+  width:100%;padding:8px;margin:5px 0
+}
 
-    td, th {
-      padding:10px;
-      border:1px solid #ddd;
-    }
+table{
+  width:100%;background:#fff;border-collapse:collapse
+}
 
-    .card {
-      background:#fff;
-      padding:15px;
-      margin-bottom:10px;
-      border-radius:8px;
-    }
-  </style>
+td,th{border:1px solid #ddd;padding:8px}
+</style>
 </head>
 
 <body>
 
 <!-- LOGIN -->
-<div id="loginPage">
-  <h2>Admin Login</h2>
-  <input id="username" placeholder="Username">
-  <input id="password" type="password" placeholder="Password">
-  <button onclick="login()">Login</button>
+<div id="login" class="login">
+<h2>Admin Login</h2>
+<input id="u">
+<input id="p" type="password">
+<button onclick="login()">Login</button>
 </div>
 
 <!-- DASHBOARD -->
-<div id="dashboard" class="hidden">
+<div id="dash" class="dashboard" style="display:none">
 
-  <div class="container">
+<div class="sidebar">
+<button onclick="loadUsers()">Users</button>
+<button onclick="loadBranches()">Branches</button>
+<button onclick="loadProducts()">Products</button>
+<button onclick="loadReports()">Reports</button>
+<button onclick="seed()">Seed Admin</button>
+</div>
 
-    <div class="sidebar">
-      <h3>Admin Panel</h3>
-      <button onclick="show('users')">Users</button>
-      <button onclick="seedAdmin()">Seed Admin</button>
-      <button onclick="logout()">Logout</button>
-    </div>
+<div class="main" id="main">
 
-    <div class="main">
-
-      <!-- CREATE USER -->
-      <div class="card">
-        <h3>Create User</h3>
-
-        <input id="newUser" placeholder="Username">
-        <input id="newPass" placeholder="Password">
-        <select id="role">
-          <option value="cashier">Cashier</option>
-          <option value="admin">Admin</option>
-        </select>
-
-        <input id="branch" placeholder="Branch ID">
-        <button onclick="createUser()">Create</button>
-      </div>
-
-      <!-- USERS TABLE -->
-      <div class="card">
-        <h3>Users</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>User</th>
-              <th>Role</th>
-              <th>Branch</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="usersTable"></tbody>
-        </table>
-      </div>
-
-    </div>
-
-  </div>
+</div>
 
 </div>
 
 <script>
 
-const API = "https://script.google.com/macros/s/AKfycbyCmt1PQZw_9N1Ovwk8eAhX3VsLfPiFVQBJWGi-TZoH7zh0JVne7mh4zIvuOniGN9M/exec";
+const API="YOUR_URL";
 
-let currentUser = null;
-
-// ================= LOGIN =================
-async function login() {
-  const res = await fetch(API, {
-    method:"POST",
-    body: JSON.stringify({
-      action:"login",
-      username: username.value,
-      password: password.value
-    })
-  });
-
-  const data = await res.json();
-
-  if(data.success && data.user.role === "admin"){
-    currentUser = data.user;
-
-    loginPage.classList.add("hidden");
-    dashboard.classList.remove("hidden");
-
-    loadUsers();
-  } else {
-    alert("Access denied");
-  }
+async function api(data){
+return fetch(API,{method:"POST",body:JSON.stringify(data)}).then(r=>r.json())
 }
 
-// ================= CREATE USER =================
-async function createUser() {
-  await fetch(API, {
-    method:"POST",
-    body: JSON.stringify({
-      action:"createUser",
-      username: newUser.value,
-      password: newPass.value,
-      role: role.value,
-      branchId: branch.value
-    })
-  });
-
-  loadUsers();
+async function login(){
+let r=await api({action:"login",username:u.value,password:p.value})
+if(r.success && r.user.role=="admin"){
+login.style.display="none"
+dash.style.display="flex"
+loadUsers()
+}
 }
 
-// ================= LOAD USERS =================
-async function loadUsers() {
-  const res = await fetch(API + "?action=getUsers");
-  const users = await res.json();
-
-  let html = "";
-
-  users.forEach(u => {
-    html += `
-      <tr>
-        <td>${u.username}</td>
-        <td>${u.role}</td>
-        <td>${u.branchId}</td>
-        <td><button onclick="deleteUser('${u.username}')">Delete</button></td>
-      </tr>
-    `;
-  });
-
-  usersTable.innerHTML = html;
+async function seed(){
+await api({action:"seedAdmin"})
+alert("done")
 }
 
-// ================= DELETE =================
-async function deleteUser(username) {
-  await fetch(API, {
-    method:"POST",
-    body: JSON.stringify({
-      action:"deleteUser",
-      username
-    })
-  });
+// ================= USERS =================
+async function loadUsers(){
+let d=await api({action:"getUsers"})
+main.innerHTML=`
+<div class="card">
+<h3>Create User</h3>
+<input id="nu" placeholder="user">
+<input id="np" placeholder="pass">
 
-  loadUsers();
+<select id="nb"></select>
+
+<select id="role">
+<option>cashier</option>
+<option>admin</option>
+</select>
+
+<button onclick="createUser()">Create</button>
+</div>
+
+<table>
+<tr><th>User</th><th>Role</th><th>Branch</th></tr>
+${d.map(x=>`<tr><td>${x.username}</td><td>${x.role}</td><td>${x.branchId}</td></tr>`).join("")}
+</table>
+`
+
+let b=await api({action:"getBranches"})
+nb.innerHTML=b.map(x=>`<option value="${x.id}">${x.name}</option>`).join("")
 }
 
-// ================= SEED ADMIN =================
-async function seedAdmin() {
-  const res = await fetch(API, {
-    method:"POST",
-    body: JSON.stringify({ action:"seedAdmin" })
-  });
-
-  const data = await res.json();
-  alert(data.message);
+async function createUser(){
+await api({
+action:"createUser",
+username:nu.value,
+password:np.value,
+role:role.value,
+branchId:nb.value
+})
+loadUsers()
 }
 
-// ================= LOGOUT =================
-function logout() {
-  location.reload();
+// ================= BRANCHES =================
+async function loadBranches(){
+let d=await api({action:"getBranches"})
+main.innerHTML=`
+<div class="card">
+<input id="bid" placeholder="id">
+<input id="bname" placeholder="name">
+<button onclick="addBranch()">Add</button>
+</div>
+
+${d.map(x=>`
+<div class="card">${x.name}</div>
+`).join("")}
+`
+}
+
+async function addBranch(){
+await api({action:"addBranch",id:bid.value,name:bname.value})
+loadBranches()
+}
+
+// ================= PRODUCTS =================
+async function loadProducts(){
+let d=await api({action:"getProducts"})
+main.innerHTML=`
+<div class="card">
+<input id="pid" placeholder="id">
+<input id="pname" placeholder="name">
+<input id="pcat" placeholder="cat">
+<input id="pprice" placeholder="price">
+<button onclick="addProduct()">Add</button>
+</div>
+
+${d.map(x=>`
+<div class="card">${x[1]} - ${x[3]}</div>
+`).join("")}
+`
+}
+
+async function addProduct(){
+await api({
+action:"addProduct",
+id:pid.value,
+name:pname.value,
+category:pcat.value,
+price:pprice.value,
+stock:0
+})
+loadProducts()
+}
+
+// ================= REPORTS =================
+async function loadReports(){
+let d=await api({action:"getReports"})
+
+main.innerHTML=`
+<div class="card">
+<h2>Total Revenue: ${d.totalRevenue}</h2>
+<button onclick="exportCSV()">Export CSV</button>
+</div>
+`
+}
+
+async function exportCSV(){
+let d=await api({action:"exportReports"})
+let blob=new Blob([d.csv],{type:"text/csv"})
+let a=document.createElement("a")
+a.href=URL.createObjectURL(blob)
+a.download="reports.csv"
+a.click()
 }
 
 </script>
