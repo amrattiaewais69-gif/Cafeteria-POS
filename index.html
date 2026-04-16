@@ -1,268 +1,216 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cafeteria POS</title>
+<title>POS Admin</title>
 
-  <style>
-    body {
-      font-family: Arial;
-      margin: 0;
-      background: #f4f6f9;
-    }
+<style>
+body{margin:0;font-family:Arial;background:#f4f6f9}
 
-    .hidden { display: none; }
+#login{
+  width:320px;margin:120px auto;background:#fff;padding:20px;border-radius:10px
+}
 
-    #login {
-      width: 320px;
-      margin: 120px auto;
-      background: white;
-      padding: 20px;
-      border-radius: 10px;
-    }
+#app{
+  display:none;
+  height:100vh;
+}
 
-    #dash {
-      display: flex;
-      height: 100vh;
-    }
+.sidebar{
+  width:220px;background:#111;color:#fff;padding:10px
+}
 
-    .sidebar {
-      width: 220px;
-      background: #111;
-      color: white;
-      padding: 10px;
-    }
+.sidebar button{
+  width:100%;padding:10px;margin:5px 0;background:#222;color:#fff;border:0
+}
 
-    .sidebar button {
-      width: 100%;
-      padding: 10px;
-      margin: 5px 0;
-      background: #222;
-      color: white;
-      border: 0;
-      cursor: pointer;
-    }
+.main{flex:1;padding:20px}
 
-    .main {
-      flex: 1;
-      padding: 20px;
-    }
+.container{display:flex;height:100vh}
 
-    .card {
-      background: white;
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 10px;
-    }
+.card{background:#fff;padding:15px;margin-bottom:10px;border-radius:10px}
 
-    input, select {
-      width: 100%;
-      padding: 8px;
-      margin: 5px 0;
-    }
+input,select{
+  width:100%;padding:8px;margin:5px 0
+}
 
-    table {
-      width: 100%;
-      background: white;
-      border-collapse: collapse;
-    }
+table{
+  width:100%;background:#fff;border-collapse:collapse
+}
 
-    td, th {
-      border: 1px solid #ddd;
-      padding: 8px;
-    }
-
-    button {
-      cursor: pointer;
-    }
-  </style>
+td,th{border:1px solid #ddd;padding:8px}
+</style>
 </head>
 
 <body>
 
 <!-- LOGIN -->
 <div id="login">
-  <h2>Admin Login</h2>
-  <input id="u" placeholder="username">
-  <input id="p" type="password" placeholder="password">
+  <h2>Login</h2>
+  <input id="u">
+  <input id="p" type="password">
   <button onclick="login()">Login</button>
 </div>
 
-<!-- DASHBOARD -->
-<div id="dash" class="hidden">
+<!-- APP -->
+<div id="app">
+<div class="container">
 
-  <div class="sidebar">
-    <button onclick="loadUsers()">Users</button>
-    <button onclick="loadBranches()">Branches</button>
-    <button onclick="loadProducts()">Products</button>
-    <button onclick="loadReports()">Reports</button>
-  </div>
+<div class="sidebar">
+<button onclick="loadUsers()">Users</button>
+<button onclick="loadBranches()">Branches</button>
+<button onclick="loadProducts()">Products</button>
+<button onclick="loadReports()">Reports</button>
+</div>
 
-  <div class="main" id="main"></div>
+<div class="main" id="main"></div>
 
+</div>
 </div>
 
 <script>
 
-const API = "https://script.google.com/macros/s/AKfycbyCmt1PQZw_9N1Ovwk8eAhX3VsLfPiFVQBJWGi-TZoH7zh0JVne7mh4zIvuOniGN9M/exec";
+const API = "YOUR_URL";
 
-let user = null;
-
-// ===================== SAFE API CALL =====================
-async function api(data) {
-  const res = await fetch(API, {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain;charset=utf-8"
-    },
-    body: JSON.stringify(data)
+async function api(d){
+  const r = await fetch(API,{
+    method:"POST",
+    headers:{ "Content-Type":"text/plain" },
+    body:JSON.stringify(d)
   });
-
-  return await res.json();
+  return r.json();
 }
 
-// ===================== LOGIN =====================
-async function login() {
+// ================= LOGIN FIX =================
+async function login(){
   const r = await api({
-    action: "login",
-    username: u.value,
-    password: p.value
+    action:"login",
+    username:u.value,
+    password:p.value
   });
 
-  if (r.success && r.user.role === "admin") {
-    user = r.user;
-    login.classList.add("hidden");
-    dash.classList.remove("hidden");
+  if(r.success){
+    login.style.display="none";
+    app.style.display="block";
     loadUsers();
-  } else {
-    alert("Login failed");
+  }else{
+    alert("login failed");
   }
 }
 
-// ===================== USERS =====================
-async function loadUsers() {
-  const users = await api({ action: "getUsers" });
+// ================= USERS =================
+async function loadUsers(){
+  const users = await api({action:"getUsers"});
+  const branches = await api({action:"getBranches"});
 
-  const branches = await api({ action: "getBranches" });
+  main.innerHTML=`
+  <div class="card">
+    <h3>Create User</h3>
 
-  main.innerHTML = `
+    <input id="nu">
+    <input id="np">
+
+    <select id="nb">
+      ${branches.map(b=>`<option value="${b.id}">${b.name}</option>`).join("")}
+    </select>
+
+    <select id="role">
+      <option>cashier</option>
+      <option>admin</option>
+    </select>
+
+    <button onclick="createUser()">Create</button>
+  </div>
+
+  ${users.map(u=>`
     <div class="card">
-      <h3>Create User</h3>
-
-      <input id="nu" placeholder="username">
-      <input id="np" placeholder="password">
-
-      <select id="nb">
-        ${branches.map(b => `<option value="${b.id}">${b.name}</option>`).join("")}
-      </select>
-
-      <select id="role">
-        <option value="cashier">cashier</option>
-        <option value="admin">admin</option>
-      </select>
-
-      <button onclick="createUser()">Create</button>
+      ${u.username} - ${u.role}
     </div>
-
-    <table>
-      <tr><th>User</th><th>Role</th><th>Branch</th></tr>
-      ${users.map(u => `
-        <tr>
-          <td>${u.username}</td>
-          <td>${u.role}</td>
-          <td>${u.branchId}</td>
-        </tr>
-      `).join("")}
-    </table>
+  `).join("")}
   `;
 }
 
-async function createUser() {
+async function createUser(){
   await api({
-    action: "createUser",
-    username: nu.value,
-    password: np.value,
-    role: role.value,
-    branchId: nb.value
+    action:"createUser",
+    username:nu.value,
+    password:np.value,
+    role:role.value,
+    branchId:nb.value
   });
 
   loadUsers();
 }
 
-// ===================== BRANCHES =====================
-async function loadBranches() {
-  const d = await api({ action: "getBranches" });
+// ================= BRANCHES =================
+async function loadBranches(){
+  const d = await api({action:"getBranches"});
 
-  main.innerHTML = `
-    <div class="card">
-      <h3>Add Branch</h3>
-      <input id="bid" placeholder="id">
-      <input id="bname" placeholder="name">
-      <button onclick="addBranch()">Add</button>
-    </div>
+  main.innerHTML=`
+  <div class="card">
+    <input id="bid">
+    <input id="bname">
+    <button onclick="addBranch()">Add</button>
+  </div>
 
-    ${d.map(b => `
-      <div class="card">
-        ${b.name} (${b.id})
-      </div>
-    `).join("")}
+  ${d.map(b=>`
+    <div class="card">${b.name}</div>
+  `).join("")}
   `;
 }
 
-async function addBranch() {
+async function addBranch(){
   await api({
-    action: "addBranch",
-    id: bid.value,
-    name: bname.value
+    action:"addBranch",
+    id:bid.value,
+    name:bname.value
   });
 
   loadBranches();
 }
 
-// ===================== PRODUCTS =====================
-async function loadProducts() {
-  const d = await api({ action: "getProducts" });
+// ================= PRODUCTS =================
+async function loadProducts(){
+  const d = await api({action:"getProducts"});
 
-  main.innerHTML = `
-    <div class="card">
-      <h3>Add Product</h3>
+  main.innerHTML=`
+  <div class="card">
+    <input id="pid">
+    <input id="pname">
+    <input id="pcat">
+    <input id="pprice">
+    <button onclick="addProduct()">Add</button>
+  </div>
 
-      <input id="pid" placeholder="id">
-      <input id="pname" placeholder="name">
-      <input id="pcat" placeholder="category">
-      <input id="pprice" placeholder="price">
-
-      <button onclick="addProduct()">Add</button>
-    </div>
-
-    ${d.map(p => `
-      <div class="card">
-        ${p[1]} - ${p[3]}
-      </div>
-    `).join("")}
+  ${d.map(p=>`
+    <div class="card">${p[1]} - ${p[3]}</div>
+  `).join("")}
   `;
 }
 
-async function addProduct() {
+async function addProduct(){
   await api({
-    action: "addProduct",
-    id: pid.value,
-    name: pname.value,
-    category: pcat.value,
-    price: pprice.value
+    action:"addProduct",
+    id:pid.value,
+    name:pname.value,
+    category:pcat.value,
+    price:pprice.value
   });
 
   loadProducts();
 }
 
-// ===================== REPORTS =====================
-async function loadReports() {
-  const d = await api({ action: "getReports" });
+// ================= REPORTS =================
+async function loadReports(){
+  const r = await api({
+    action:"getReports",
+    type:"summary"
+  });
 
-  main.innerHTML = `
-    <div class="card">
-      <h2>Total Revenue: ${d.totalRevenue}</h2>
-      <h4>Sales Count: ${d.count}</h4>
-    </div>
+  main.innerHTML=`
+  <div class="card">
+    <h2>Total: ${r.total}</h2>
+    <h4>Count: ${r.count}</h4>
+  </div>
   `;
 }
 
