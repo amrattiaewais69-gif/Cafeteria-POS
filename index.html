@@ -15,6 +15,8 @@ body{margin:0;font-family:Arial;background:#f4f6f9}
   height:100vh;
 }
 
+.container{display:flex;height:100vh}
+
 .sidebar{
   width:220px;background:#111;color:#fff;padding:10px
 }
@@ -25,25 +27,12 @@ body{margin:0;font-family:Arial;background:#f4f6f9}
 
 .main{flex:1;padding:20px}
 
-.container{display:flex;height:100vh}
-
 .card{background:#fff;padding:15px;margin-bottom:10px;border-radius:10px}
-
-input,select{
-  width:100%;padding:8px;margin:5px 0
-}
-
-table{
-  width:100%;background:#fff;border-collapse:collapse
-}
-
-td,th{border:1px solid #ddd;padding:8px}
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="login">
   <h2>Login</h2>
   <input id="u">
@@ -51,7 +40,6 @@ td,th{border:1px solid #ddd;padding:8px}
   <button onclick="login()">Login</button>
 </div>
 
-<!-- APP -->
 <div id="app">
 <div class="container">
 
@@ -71,28 +59,30 @@ td,th{border:1px solid #ddd;padding:8px}
 
 const API = "https://script.google.com/macros/s/AKfycbyCmt1PQZw_9N1Ovwk8eAhX3VsLfPiFVQBJWGi-TZoH7zh0JVne7mh4zIvuOniGN9M/exec";
 
-async function api(d){
+async function api(data){
   const r = await fetch(API,{
     method:"POST",
     headers:{ "Content-Type":"text/plain" },
-    body:JSON.stringify(d)
+    body:JSON.stringify(data)
   });
-  return r.json();
+
+  return await r.json();
 }
 
 // ================= LOGIN FIX =================
 async function login(){
+
   const r = await api({
     action:"login",
-    username:u.value,
-    password:p.value
+    username: u.value,
+    password: p.value
   });
 
   if(r.success){
-    login.style.display="none";
-    app.style.display="block";
+    document.getElementById("login").style.display = "none";
+    document.getElementById("app").style.display = "block";
     loadUsers();
-  }else{
+  } else {
     alert("login failed");
   }
 }
@@ -102,30 +92,30 @@ async function loadUsers(){
   const users = await api({action:"getUsers"});
   const branches = await api({action:"getBranches"});
 
-  main.innerHTML=`
-  <div class="card">
-    <h3>Create User</h3>
-
-    <input id="nu">
-    <input id="np">
-
-    <select id="nb">
-      ${branches.map(b=>`<option value="${b.id}">${b.name}</option>`).join("")}
-    </select>
-
-    <select id="role">
-      <option>cashier</option>
-      <option>admin</option>
-    </select>
-
-    <button onclick="createUser()">Create</button>
-  </div>
-
-  ${users.map(u=>`
+  main.innerHTML = `
     <div class="card">
-      ${u.username} - ${u.role}
+      <h3>Create User</h3>
+
+      <input id="nu">
+      <input id="np">
+
+      <select id="nb">
+        ${branches.map(b=>`<option value="${b.id}">${b.name}</option>`).join("")}
+      </select>
+
+      <select id="role">
+        <option value="cashier">cashier</option>
+        <option value="admin">admin</option>
+      </select>
+
+      <button onclick="createUser()">Create</button>
     </div>
-  `).join("")}
+
+    ${users.map(u=>`
+      <div class="card">
+        ${u.username} - ${u.role}
+      </div>
+    `).join("")}
   `;
 }
 
@@ -145,16 +135,16 @@ async function createUser(){
 async function loadBranches(){
   const d = await api({action:"getBranches"});
 
-  main.innerHTML=`
-  <div class="card">
-    <input id="bid">
-    <input id="bname">
-    <button onclick="addBranch()">Add</button>
-  </div>
+  main.innerHTML = `
+    <div class="card">
+      <input id="bid">
+      <input id="bname">
+      <button onclick="addBranch()">Add</button>
+    </div>
 
-  ${d.map(b=>`
-    <div class="card">${b.name}</div>
-  `).join("")}
+    ${d.map(b=>`
+      <div class="card">${b.name}</div>
+    `).join("")}
   `;
 }
 
@@ -172,18 +162,18 @@ async function addBranch(){
 async function loadProducts(){
   const d = await api({action:"getProducts"});
 
-  main.innerHTML=`
-  <div class="card">
-    <input id="pid">
-    <input id="pname">
-    <input id="pcat">
-    <input id="pprice">
-    <button onclick="addProduct()">Add</button>
-  </div>
+  main.innerHTML = `
+    <div class="card">
+      <input id="pid">
+      <input id="pname">
+      <input id="pcat">
+      <input id="pprice">
+      <button onclick="addProduct()">Add</button>
+    </div>
 
-  ${d.map(p=>`
-    <div class="card">${p[1]} - ${p[3]}</div>
-  `).join("")}
+    ${d.map(p=>`
+      <div class="card">${p[1]} - ${p[3]}</div>
+    `).join("")}
   `;
 }
 
@@ -206,11 +196,11 @@ async function loadReports(){
     type:"summary"
   });
 
-  main.innerHTML=`
-  <div class="card">
-    <h2>Total: ${r.total}</h2>
-    <h4>Count: ${r.count}</h4>
-  </div>
+  main.innerHTML = `
+    <div class="card">
+      <h2>Total: ${r.total}</h2>
+      <h4>Count: ${r.count}</h4>
+    </div>
   `;
 }
 
