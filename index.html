@@ -7,16 +7,34 @@
     body {
       font-family: Arial;
       background: #f5f5f5;
+      margin: 0;
     }
 
     .hidden {
       display: none;
     }
 
+    header {
+      background: #222;
+      color: white;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #userPhoto {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+    }
+
     #products {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 10px;
+      padding: 10px;
+      margin-right: 320px;
     }
 
     .card {
@@ -24,10 +42,17 @@
       padding: 10px;
       border-radius: 10px;
       cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
     }
 
     .card img {
       width: 100%;
+      height: 120px;
+      object-fit: cover;
     }
 
     #cart {
@@ -38,6 +63,32 @@
       background: white;
       height: 100%;
       padding: 10px;
+      border-left: 2px solid #ddd;
+    }
+
+    #cartItems div {
+      padding: 5px;
+      border-bottom: 1px solid #eee;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #218838;
     }
   </style>
 
@@ -45,6 +96,7 @@
 
 <body>
 
+<!-- LOGIN -->
 <div id="loginPage">
   <h2>Login</h2>
   <input id="username" placeholder="Username">
@@ -52,6 +104,7 @@
   <button onclick="login()">Login</button>
 </div>
 
+<!-- POS -->
 <div id="posPage" class="hidden">
   <header>
     <img id="userPhoto">
@@ -64,16 +117,18 @@
     <h3>Cart</h3>
     <div id="cartItems"></div>
 
-    <input id="paid" placeholder="Paid">
-    <p>Total: <span id="total"></span></p>
-    <p>Change: <span id="change"></span></p>
+    <input id="paid" placeholder="Paid Amount">
+    <p>Total: <span id="total">0</span></p>
+    <p>Change: <span id="change">0</span></p>
 
     <button onclick="completeSale()">Checkout</button>
   </div>
 </div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbyCmt1PQZw_9N1Ovwk8eAhX3VsLfPiFVQBJWGi-TZoH7zh0JVne7mh4zIvuOniGN9M/exec";
+
+// 🔥 IMPORTANT: Proxy to fix CORS
+const API = "https://corsproxy.io/?https://script.google.com/macros/s/AKfycbyCmt1PQZw_9N1Ovwk8eAhX3VsLfPiFVQBJWGi-TZoH7zh0JVne7mh4zIvuOniGN9M/exec";
 
 let user = null;
 let cart = [];
@@ -84,6 +139,7 @@ let cart = [];
 async function login() {
   const res = await fetch(API, {
     method: "POST",
+    headers: { "Content-Type": "text/plain" },
     body: JSON.stringify({
       action: "login",
       username: username.value,
@@ -99,10 +155,10 @@ async function login() {
     document.getElementById("loginPage").classList.add("hidden");
     document.getElementById("posPage").classList.remove("hidden");
 
-    loadProducts();
-
     userPhoto.src = user.photo;
     branchName.innerText = "Branch: " + user.branchId;
+
+    loadProducts();
 
   } else {
     alert("Login failed");
@@ -160,7 +216,7 @@ function renderCart() {
     total += item.price * item.qty;
 
     container.innerHTML += `
-      <div>${item.name} x${item.qty}</div>
+      <div>${item.name} x${item.qty} = ${item.price * item.qty}</div>
     `;
   });
 
@@ -179,8 +235,14 @@ async function completeSale() {
   const total = Number(document.getElementById("total").innerText);
   const paid = Number(document.getElementById("paid").value);
 
+  if (!paid || paid < total) {
+    alert("Invalid paid amount");
+    return;
+  }
+
   const res = await fetch(API, {
     method: "POST",
+    headers: { "Content-Type": "text/plain" },
     body: JSON.stringify({
       action: "sale",
       cashier: user.username,
@@ -200,8 +262,11 @@ async function completeSale() {
     cart = [];
     renderCart();
     loadProducts();
+    document.getElementById("paid").value = "";
+    document.getElementById("change").innerText = "0";
   }
 }
+
 </script>
 
 </body>
