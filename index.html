@@ -1,237 +1,223 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Cafeteria POS PRO</title>
+  <title>Admin POS</title>
 
   <style>
-    body { font-family: Arial; margin:0; background:#f5f5f5; }
+    body { font-family: Arial; background:#f5f5f5; margin:0; }
 
     .hidden { display:none; }
 
-    header {
+    .container {
+      display:flex;
+      height:100vh;
+    }
+
+    .sidebar {
+      width:220px;
       background:#111;
       color:#fff;
       padding:10px;
-      display:flex;
-      align-items:center;
-      gap:10px;
     }
 
-    #userPhoto {
-      width:40px; height:40px;
-      border-radius:50%;
+    .main {
+      flex:1;
+      padding:20px;
     }
 
-    #products {
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:10px;
-      padding:10px;
-      margin-right:320px;
-    }
-
-    .card {
-      background:#fff;
-      padding:10px;
-      border-radius:10px;
-      cursor:pointer;
-      transition:0.2s;
-    }
-
-    .card:hover { transform:scale(1.05); }
-
-    .card img {
+    input, select {
       width:100%;
-      height:120px;
-      object-fit:cover;
+      padding:8px;
+      margin:5px 0;
     }
-
-    #cart {
-      position:fixed;
-      right:0;
-      top:0;
-      width:300px;
-      background:#fff;
-      height:100%;
-      padding:10px;
-      border-left:2px solid #ddd;
-    }
-
-    input { width:100%; padding:8px; margin-top:5px; }
 
     button {
       width:100%;
       padding:10px;
-      margin-top:10px;
       background:#28a745;
       color:#fff;
       border:none;
       cursor:pointer;
+      margin-top:5px;
     }
 
-    .toast {
-      position:fixed;
-      bottom:20px;
-      left:50%;
-      transform:translateX(-50%);
-      background:#333;
-      color:#fff;
-      padding:10px 20px;
-      border-radius:5px;
-      display:none;
+    table {
+      width:100%;
+      background:#fff;
+      margin-top:10px;
+      border-collapse:collapse;
+    }
+
+    td, th {
+      padding:10px;
+      border:1px solid #ddd;
+    }
+
+    .card {
+      background:#fff;
+      padding:15px;
+      margin-bottom:10px;
+      border-radius:8px;
     }
   </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
 <div id="loginPage">
-  <h2>Login</h2>
+  <h2>Admin Login</h2>
   <input id="username" placeholder="Username">
   <input id="password" type="password" placeholder="Password">
   <button onclick="login()">Login</button>
 </div>
 
-<div id="posPage" class="hidden">
-  <header>
-    <img id="userPhoto">
-    <h3 id="branchName"></h3>
-  </header>
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
 
-  <div id="products"></div>
+  <div class="container">
 
-  <div id="cart">
-    <h3>Cart</h3>
-    <div id="cartItems"></div>
+    <div class="sidebar">
+      <h3>Admin Panel</h3>
+      <button onclick="show('users')">Users</button>
+      <button onclick="seedAdmin()">Seed Admin</button>
+      <button onclick="logout()">Logout</button>
+    </div>
 
-    <input id="paid" placeholder="Paid">
-    <p>Total: <span id="total">0</span></p>
-    <p>Change: <span id="change">0</span></p>
+    <div class="main">
 
-    <button onclick="completeSale()">Checkout</button>
+      <!-- CREATE USER -->
+      <div class="card">
+        <h3>Create User</h3>
+
+        <input id="newUser" placeholder="Username">
+        <input id="newPass" placeholder="Password">
+        <select id="role">
+          <option value="cashier">Cashier</option>
+          <option value="admin">Admin</option>
+        </select>
+
+        <input id="branch" placeholder="Branch ID">
+        <button onclick="createUser()">Create</button>
+      </div>
+
+      <!-- USERS TABLE -->
+      <div class="card">
+        <h3>Users</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>User</th>
+              <th>Role</th>
+              <th>Branch</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="usersTable"></tbody>
+        </table>
+      </div>
+
+    </div>
+
   </div>
-</div>
 
-<div id="toast" class="toast"></div>
+</div>
 
 <script>
 
 const API = "https://script.google.com/macros/s/AKfycbyCmt1PQZw_9N1Ovwk8eAhX3VsLfPiFVQBJWGi-TZoH7zh0JVne7mh4zIvuOniGN9M/exec";
 
-let user=null, cart=[];
-
-// 🔥 SAFE FETCH
-async function apiCall(data) {
-  const res = await fetch(API, {
-    method:"POST",
-    headers:{ "Content-Type":"text/plain" },
-    body: JSON.stringify(data)
-  });
-
-  return await res.json();
-}
+let currentUser = null;
 
 // ================= LOGIN =================
 async function login() {
-  const data = await apiCall({
-    action:"login",
-    username:username.value,
-    password:password.value
+  const res = await fetch(API, {
+    method:"POST",
+    body: JSON.stringify({
+      action:"login",
+      username: username.value,
+      password: password.value
+    })
   });
 
-  if(data.success){
-    user=data.user;
+  const data = await res.json();
+
+  if(data.success && data.user.role === "admin"){
+    currentUser = data.user;
 
     loginPage.classList.add("hidden");
-    posPage.classList.remove("hidden");
+    dashboard.classList.remove("hidden");
 
-    userPhoto.src=user.photo;
-    branchName.innerText="Branch: "+user.branchId;
-
-    loadProducts();
-    showToast("Welcome "+user.username);
-
-  }else showToast("Login Failed");
-}
-
-// ================= PRODUCTS =================
-async function loadProducts(){
-  const res = await fetch(`${API}?action=getProducts&branchId=${user.branchId}`);
-  const products = await res.json();
-
-  productsDiv = document.getElementById("products");
-  productsDiv.innerHTML="";
-
-  products.forEach(p=>{
-    let div=document.createElement("div");
-    div.className="card";
-
-    div.innerHTML=`
-      <img src="${p.image}">
-      <h4>${p.name}</h4>
-      <p>${p.price} EGP</p>
-      <p>Stock: ${p.stock}</p>
-    `;
-
-    div.onclick=()=>addToCart(p);
-    productsDiv.appendChild(div);
-  });
-}
-
-// ================= CART =================
-function addToCart(p){
-  let item=cart.find(i=>i.id===p.id);
-  item?item.qty++:cart.push({...p,qty:1});
-  renderCart();
-}
-
-function renderCart(){
-  let html="", total=0;
-
-  cart.forEach(i=>{
-    total+=i.price*i.qty;
-    html+=`<div>${i.name} x${i.qty}</div>`;
-  });
-
-  cartItems.innerHTML=html;
-  totalEl.innerText=total;
-
-  paid.oninput=()=>{
-    change.innerText=(paid.value||0)-total;
-  };
-}
-
-// ================= CHECKOUT =================
-async function completeSale(){
-  const total=Number(totalEl.innerText);
-  const paidVal=Number(paid.value);
-
-  if(paidVal<total) return showToast("Invalid payment");
-
-  const data = await apiCall({
-    action:"sale",
-    cashier:user.username,
-    branchId:user.branchId,
-    total,
-    paid:paidVal,
-    change:paidVal-total,
-    payment:"cash",
-    items:cart
-  });
-
-  if(data.success){
-    showToast("Invoice: "+data.invoiceId);
-    cart=[];
-    renderCart();
-    loadProducts();
+    loadUsers();
+  } else {
+    alert("Access denied");
   }
 }
 
-// ================= TOAST =================
-function showToast(msg){
-  toast.innerText=msg;
-  toast.style.display="block";
-  setTimeout(()=>toast.style.display="none",2000);
+// ================= CREATE USER =================
+async function createUser() {
+  await fetch(API, {
+    method:"POST",
+    body: JSON.stringify({
+      action:"createUser",
+      username: newUser.value,
+      password: newPass.value,
+      role: role.value,
+      branchId: branch.value
+    })
+  });
+
+  loadUsers();
+}
+
+// ================= LOAD USERS =================
+async function loadUsers() {
+  const res = await fetch(API + "?action=getUsers");
+  const users = await res.json();
+
+  let html = "";
+
+  users.forEach(u => {
+    html += `
+      <tr>
+        <td>${u.username}</td>
+        <td>${u.role}</td>
+        <td>${u.branchId}</td>
+        <td><button onclick="deleteUser('${u.username}')">Delete</button></td>
+      </tr>
+    `;
+  });
+
+  usersTable.innerHTML = html;
+}
+
+// ================= DELETE =================
+async function deleteUser(username) {
+  await fetch(API, {
+    method:"POST",
+    body: JSON.stringify({
+      action:"deleteUser",
+      username
+    })
+  });
+
+  loadUsers();
+}
+
+// ================= SEED ADMIN =================
+async function seedAdmin() {
+  const res = await fetch(API, {
+    method:"POST",
+    body: JSON.stringify({ action:"seedAdmin" })
+  });
+
+  const data = await res.json();
+  alert(data.message);
+}
+
+// ================= LOGOUT =================
+function logout() {
+  location.reload();
 }
 
 </script>
